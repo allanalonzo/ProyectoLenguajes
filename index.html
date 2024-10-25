@@ -25,7 +25,7 @@
         #Grafo {
         font: 10pt sans;
         line-height: 1.5em;
-        width: 800px;
+        width: 1500px;
         height: 800px;
         padding: 0;
         margin: 0;
@@ -258,25 +258,25 @@
         <textarea id="data">
           digraph finite_state_machine {
             size="10"
-            node [shape = circle fontsize=16];
-                  edge[length=100, color=gray, fontcolor=black]
-            A -> B [ label = "0"];
-                  A -> C [ label = "1"];
-            B -> D [ label = "1" ];
-            C -> D [ label = "1" ];
-            D -> E [ label = "1" ];
-            E -> F [ label = "0" ];
-            E -> G [ label = "1" ];
-            G -> I [ label = "0" ];
-            G -> H [ label = "1" ];
-            H -> I [ label = "1" ];
-            F -> G [ label = "1" ];
-            I -> J [ label = "1" ];
-            J -> K [ label = "1" ];
-                  A[
-                    fontcolor = white, color=red
+            node [shape = circle fontsize=17];
+                  edge[length=150, color=gray, fontcolor=black]
+            A_Plaza -> B_Publicacion [ label = "0" fontsize=50];
+            A_Plaza -> C_Movimiento [ label = "1" fontsize=50];
+            B_Publicacion -> D_Recepcion [ label = "1" fontsize=50];
+            C_Movimiento -> D_Recepcion [ label = "1"fontsize=50 ];
+            D_Recepcion -> E_Revision [ label = "1" fontsize=50];
+            E_Revision -> F_Contacto [ label = "0" fontsize=50];
+            E_Revision -> G_Entrevista [ label = "1" fontsize=50];
+            G_Entrevista -> I_Aceptacion [ label = "0" fontsize=50];
+            G_Entrevista -> H_Validacion [ label = "1" fontsize=50];
+            H_Validacion -> I_Aceptacion [ label = "1" fontsize=50];
+            F_Contacto -> G_Entrevista [ label = "1" fontsize=50];
+            I_Aceptacion -> J_Entrenamiento [ label = "1" fontsize=50];
+            J_Entrenamiento -> K_Contratacion [ label = "1" fontsize=50];
+            A_Plaza[
+                    fontcolor = white, color=blue
                   ]
-                  K[
+                  K_Contratacion[
                     fontcolor = white, color=red
                   ]
           
