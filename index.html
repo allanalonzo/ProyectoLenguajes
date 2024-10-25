@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lenguajes - Proyectos</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .chart-container {
+            width: 50vw; 
+            height: 50vh; 
+        }
+        .valid {
+            color: green;
+        }
+        .invalid {
+            color: red;
+        }
+        #Grafo {
+        font: 10pt sans;
+        line-height: 1.5em;
+        width: 800px;
+        height: 800px;
+        padding: 0;
+        margin: 0;
+        color: #4d4d4d;
+        box-sizing: border-box;
+        overflow: hidden;
+      }
+
+      #header {
+        margin: 0;
+        padding: 10px;
+        box-sizing: border-box;
+      }
+
+      #contents {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        position: relative;
+      }
+
+      #left,
+      #right {
+        position: absolute;
+        width: 50%;
+        height: 100%;
+        margin: 0;
+        padding: 10px;
+        box-sizing: border-box;
+        display: inline-block;
+      }
+
+      #left {
+        top: 0;
+        left: 0;
+      }
+
+      #right {
+        top: 0;
+        right: 0;
+      }
+
+      #error {
+        color: red;
+      }
+
+      #data {
+        width: 100%;
+        height: 100%;
+        border: 1px solid #d3d3d3;
+        box-sizing: border-box;
+        resize: none;
+      }
+
+      #draw {
+        padding: 5px 15px;
+      }
+
+      #mynetwork {
+        width: 100%;
+        height: 100%;
+        border: 1px solid #d3d3d3;
+        box-sizing: border-box;
+      }
+
+      a:hover {
+        color: red;
+      }
+    </style>
+</head>
+<body>
+    <h1>Metodo de Hilos </h1>
+</head>
+<body>
+    <h1>Analizador Léxico</h1>
+    <form id="baseForm">
+        <label for="baseString">Cadena Base:</label>
+        <input type="text" id="baseString" required>
+        <button type="submit">Agregar Cadena Base</button>
+    </form>
+    <div id="baseStringsContainer"></div>
+    <button id="resetBaseButton" style="display:none;">Reiniciar Cadenas Base</button>
+    <form id="lexicalForm" style="display:none;">
+        <label for="baseStringSelect">Seleccionar Cadena Base:</label>
+        <select id="baseStringSelect" required></select><br><br>
+        <label for="inputString">Cadena a Validar:</label>
+        <input type="text" id="inputString" required>
+        <button type="submit">Validar</button>
+    </form>
+    <p id="result"></p>
+    <div class="chart-container" style="display:none;">
+        <canvas id="progressChart"></canvas>
+    </div>
+    <button id="resetValidationButton" style="display:none;">Reiniciar Validación</button>
+
+    <script>
+        let baseStrings = [];
+        let myChart;
+
+        document.getElementById('baseForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const baseString = document.getElementById('baseString').value;
+            baseStrings.push(baseString);
+            updateBaseStringsContainer();
+            updateBaseStringSelect();
+            document.getElementById('baseString').value = '';
+            document.getElementById('resetBaseButton').style.display = 'block';
+            document.getElementById('lexicalForm').style.display = 'block';
+        });
+
+        document.getElementById('resetBaseButton').addEventListener('click', function() {
+            document.getElementById('baseString').value = '';
+            document.getElementById('result').textContent = '';
+            document.getElementById('result').className = '';
+            document.getElementById('progressChart').getContext('2d').clearRect(0, 0, document.getElementById('progressChart').width, document.getElementById('progressChart').height);
+            document.getElementById('resetBaseButton').style.display = 'none';
+            document.getElementById('lexicalForm').style.display = 'none';
+            document.getElementById('resetValidationButton').style.display = 'none';
+            baseStrings = [];
+            updateBaseStringsContainer();
+            updateBaseStringSelect();
+        });
+
+        document.getElementById('lexicalForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const inputString = document.getElementById('inputString').value;
+            const baseString = document.getElementById('baseStringSelect').value;
+            const resultElement = document.getElementById('result');
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            const worker = new Worker('worker.js');
+
+            worker.postMessage({ inputString, baseString });
+
+            worker.onmessage = function(e) {
+                const isCompleteValid = e.data;
+
+                if (myChart) {
+                    myChart.destroy();
+                }
+
+                const labels = Array.from({ length: inputString.length }, (_, i) => `Hasta ${baseString[i]}`);
+                const progress = Array.from({ length: inputString.length }, (_, i) => (inputString[i] === baseString[i] ? 1 : 0));
+
+                myChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Progreso de Validación',
+                            data: progress,
+                            backgroundColor: progress.map(value => value ? 'rgba(54, 162, 235, 0.2)' : 'rgba(255, 99, 132, 0.2)'),
+                            borderColor: progress.map(value => value ? 'rgba(54, 162, 235, 1)' : 'rgba(255, 99, 132, 1)'),
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 1,
+                                ticks: {
+                                    stepSize: 1,
+                                    callback: function(value) {
+                                        return value === 1 ? 'válida' : 'inválida';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                resultElement.textContent = isCompleteValid ? 'Cadena válida' : 'Cadena inválida.';
+                resultElement.className = isCompleteValid ? 'valid' : 'invalid';
+                document.querySelector('.chart-container').style.display = 'block';
+                document.getElementById('resetValidationButton').style.display = 'block';
+            };
+        });
+
+        document.getElementById('resetValidationButton').addEventListener('click', function() {
+            document.getElementById('inputString').value = '';
+            document.getElementById('result').textContent = '';
+            document.getElementById('result').className = '';
+            if (myChart) {
+                myChart.destroy();
+            }
+            document.querySelector('.chart-container').style.display = 'none';
+            document.getElementById('resetValidationButton').style.display = 'none';
+        });
+
+        function updateBaseStringsContainer() {
+            const container = document.getElementById('baseStringsContainer');
+            container.innerHTML = '';
+            baseStrings.forEach((str, index) => {
+                const p = document.createElement('p');
+                p.textContent = `Cadena ${index + 1}: ${str}`;
+                const details = document.createElement('p');
+                details.innerHTML = `
+                    <strong>Elementos:</strong> ${str.split('').join(', ')}<br>
+                    <strong>Primer elemento:</strong> ${str.charAt(0)}<br>
+                    <strong>Último elemento:</strong> ${str.charAt(str.length - 1)}
+                `;
+                container.appendChild(p);
+                container.appendChild(details);
+            });
+        }
+
+        function updateBaseStringSelect() {
+            const select = document.getElementById('baseStringSelect');
+            select.innerHTML = '';
+            baseStrings.forEach((str, index) => {
+                const option = document.createElement('option');
+                option.value = str;
+                option.textContent = `Cadena Base ${index + 1}: ${str}`;
+                select.appendChild(option);
+            });
+        }
+    </script>
+    
+<div id="Grafo">
+    <div>
+        <button id="draw" title="Dibujar Grafo">Actualizar Grafo</button>
+        <span id="error"></span>
+      </div>
+        
+    <div id="contents">
+      <div id="left">
+        <textarea id="data">
+          digraph finite_state_machine {
+            size="10"
+            node [shape = circle fontsize=16];
+                  edge[length=100, color=gray, fontcolor=black]
+            A -> B [ label = "0"];
+                  A -> C [ label = "1"];
+            B -> D [ label = "1" ];
+            C -> D [ label = "1" ];
+            D -> E [ label = "1" ];
+            E -> F [ label = "0" ];
+            E -> G [ label = "1" ];
+            G -> I [ label = "0" ];
+            G -> H [ label = "1" ];
+            H -> I [ label = "1" ];
+            F -> G [ label = "1" ];
+            I -> J [ label = "1" ];
+            J -> K [ label = "1" ];
+                  A[
+                    fontcolor = white, color=red
+                  ]
+                  K[
+                    fontcolor = white, color=red
+                  ]
+          
+          }
+    
+    </textarea
+        >
+      </div>
+      <div id="right">
+        <div id="mynetwork"></div>
+      </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+  // Creacion del Grafo
+  var container = document.getElementById("mynetwork");
+  var options = {
+    physics: {
+      stabilization: false,
+      barnesHut: {
+        springLength: 200,
+      },
+    },
+  };
+  var data = {};
+  var network = new vis.Network(container, data, options);
+
+  $("#draw").click(draw);
+
+  $("a.example").click(function (event) {
+    var url = $(event.target).data("url");
+    $.get(url)
+      .done(function (dotData) {
+        $("#data").val(dotData);
+        draw();
+      })
+      .fail(function () {
+        $("#error").html(
+          "Error: No se pudo rendirizar el contenido"
+        );
+        resize();
+      });
+  });
+
+  $(window).resize(resize);
+  $(window).load(draw);
+
+  $("#data").keydown(function (event) {
+    if (event.ctrlKey && event.keyCode === 13) {
+      draw();
+      event.stopPropagation();
+      event.preventDefault();
+    }
+  });
+
+  function resize() {
+    $("#contents").height($("body").height() - $("#header").height() - 30);
+  }
+
+  function draw() {
+    try {
+      resize();
+      $("#error").html("");
+
+     
+      data = vis.parseDOTNetwork($("#data").val());
+
+      network.setData(data);
+    } catch (err) {
+      
+      var match = /\(char (.*)\)/.exec(err);
+      if (match) {
+        var pos = Number(match[1]);
+        var textarea = $("#data")[0];
+        if (textarea.setSelectionRange) {
+          textarea.focus();
+          textarea.setSelectionRange(pos, pos);
+        }
+      }
+
+     
+      $("#error").html(err.toString());
+    }
+  }
+</script>
+</body>
+</html>
